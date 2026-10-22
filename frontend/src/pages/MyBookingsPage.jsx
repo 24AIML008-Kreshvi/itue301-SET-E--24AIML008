@@ -1,0 +1,9 @@
+import {useEffect,useState} from 'react';
+import {useAuth} from '../context/AuthContext';
+export default function MyBookingsPage(){
+ const{token}=useAuth(),[bookings,setBookings]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ async function load(){const r=await fetch('/api/v1/bookings/my',{headers:{Authorization:`Bearer ${token}`}});const data=await r.json();if(!r.ok)throw new Error(data.message);setBookings(data)}
+ useEffect(()=>{load().catch(err=>setError(err.message)).finally(()=>setLoading(false))},[token]);
+ async function cancel(id){try{const r=await fetch(`/api/v1/bookings/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({status:'cancelled'})});const data=await r.json();if(!r.ok)throw new Error(data.message);await load()}catch(err){setError(err.message)}}
+ return <main className="page"><div className="page-intro"><span className="eyebrow">YOUR TRIPS</span><h1>My bookings<span className="accent">.</span></h1><p>All your reservations in one place.</p></div>{loading&&<p>Loading bookings...</p>}{error&&<p className="error">{error}</p>}{!loading&&bookings.length===0&&<div className="empty">No bookings yet. Your next adventure starts on the Fleet page.</div>}<div className="booking-list">{bookings.map(b=><article className="booking-row" key={b._id}><div><span className="eyebrow">BOOKING #{b._id.slice(-6).toUpperCase()}</span><h3>{b.vehicleId?.model||'Vehicle'}</h3><p>{b.vehicleId?.type} · {new Date(b.pickupDate).toLocaleDateString()} — {new Date(b.returnDate).toLocaleDateString()}</p></div><div className="booking-actions"><span className={`status ${b.status}`}>{b.status}</span>{b.status==='reserved'&&<button className="outline small" onClick={()=>cancel(b._id)}>Cancel booking</button>}</div></article>)}</div></main>;
+}
